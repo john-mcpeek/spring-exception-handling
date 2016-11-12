@@ -31,8 +31,8 @@ public abstract class BaseGlobalExceptionHandler {
 		}
 
 		ResponseEntity<String> result;
-		if ( e instanceof GlobalException ) {
-			result = restExceptionHandler( request, (GlobalException) e );
+		if ( e instanceof SimpleStatusResponseException ) {
+			result = restExceptionHandler( request, (SimpleStatusResponseException) e );
 		} else {
 			result = generateResponse( request, e );
 		}
@@ -70,7 +70,7 @@ public abstract class BaseGlobalExceptionHandler {
 		return new ResponseEntity<>( result, HttpStatus.INTERNAL_SERVER_ERROR );
 	}
 	
-	protected ResponseEntity<String> restExceptionHandler(HttpServletRequest request, GlobalException e) {
+	protected ResponseEntity<String> restExceptionHandler(HttpServletRequest request, SimpleStatusResponseException e) {
 		String originalUrl = getOriginalUrl( request );
 		String body = getBodyOfRequest( request );
 		
