@@ -139,7 +139,7 @@ class ArrayServletInputStream extends ServletInputStream {
 	
 	@Override
 	public int readLine(byte[] b, int off, int len) throws IOException {
-        return readLine( b, off, len );
+        return super.readLine( b, off, len );
 	}
 	
 	@Override
