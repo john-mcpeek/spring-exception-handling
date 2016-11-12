@@ -24,7 +24,7 @@ import javax.servlet.http.HttpServletRequestWrapper;
  * @author John McPeek
  *
  */
-public class ReReadableInputStreamFilter implements Filter {
+public class ReReadableRequestInputStreamFilter implements Filter {
 
 	public void init(FilterConfig filterConfig) throws ServletException {
 	}
