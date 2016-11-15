@@ -3,22 +3,28 @@ package io.volcanolabs.core.exceptions;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
+import java.util.Enumeration;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * Extend this class and add a @ControllerAdvice annotation to get the global exception handling.
  * @author John McPeek
  *
  */
-public abstract class BaseGlobalExceptionHandler {
+@ControllerAdvice
+public class BaseGlobalExceptionHandler {
+	Logger log = LoggerFactory.getLogger( BaseGlobalExceptionHandler.class );
 
 	private static final int CHUNK_SIZE = 8192;
 
@@ -32,55 +38,30 @@ public abstract class BaseGlobalExceptionHandler {
 
 		ResponseEntity<String> result;
 		if ( e instanceof SimpleStatusResponseException ) {
-			result = restExceptionHandler( request, (SimpleStatusResponseException) e );
+			result = generateExceptionResponse( request, ( (SimpleStatusResponseException) e ).getStatusCode(), e );
 		} else {
-			result = generateResponse( request, e );
+			result = generateExceptionResponse( request, HttpStatus.INTERNAL_SERVER_ERROR, e );
 		}
 
 		return result;
 	}
 
-	/**
-	 * Override this method to add your own global exception handling behavior.
-	 * 
-	 * @param request
-	 * @param e
-	 * @return
-	 */
-	protected ResponseEntity<String> generateResponse(HttpServletRequest request, Exception e) {
-		return defaultResponseGenerator( request, e );
-	}
+	protected ResponseEntity<String> generateExceptionResponse(HttpServletRequest request, HttpStatus statusCode, Exception e) {
+		String originalUrl = getOriginalUrl( request );
+		String headers = getHeaders( request );
+		String body = getBodyOfRequest( request );
 
-	protected ResponseEntity<String> defaultResponseGenerator(HttpServletRequest request, Exception e) {
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		PrintWriter pw = new PrintWriter( out );		
-		e.printStackTrace( pw );
+		String result = "{\n\t\"statusCode\": \"" + statusCode + "\",\n\t\"message\": \"" + e.getMessage() + "\",\n\t\"url\": \"" + originalUrl + "\",\n\t\"headers\": [\"" + headers + "\"],\n\t\"body\": \"" + body + "\"";
+		if ( e != null ) {
+			String stackTrace = ExceptionUtils.getStackTrace( e );
+			stackTrace = StringEscapeUtils.ESCAPE_JSON.translate( stackTrace );
+			result += ",\n\t\"exception\": \"\n" + stackTrace;
+		}
+		result += "\n}";
 		
-		String originalUrl = getOriginalUrl( request );
-		String body = getBodyOfRequest( request );
-		
-		String result = "{\n"
-				+ "	\"url\": \"" + originalUrl + "\"\n"
-				+ "	\"body\": \"" + body + "\"\n"
-				+ "	\"exception\": \"" + e.getClass().getName() + "\"\n"
-				+ "	\"message\": \"" + e.getMessage() + "\"\n"
-				+ "	\"stacktrace\": \"" + out.toString() + "\"\n"
-				+ "}";
-		
-		return new ResponseEntity<>( result, HttpStatus.INTERNAL_SERVER_ERROR );
-	}
-	
-	protected ResponseEntity<String> restExceptionHandler(HttpServletRequest request, SimpleStatusResponseException e) {
-		String originalUrl = getOriginalUrl( request );
-		String body = getBodyOfRequest( request );
-		
-		String result = "{"
-				+ "	\"message\": \"" + e.getMessage() + "\"\n"  
-				+ "	\"url\": \"" + originalUrl + "\"\n"
-				+ "	\"body\": \"" + body + "\""
-				+ "}";
-				
-		return new ResponseEntity<>( result, e.getStatusCode() );
+		log.error( result );
+
+		return new ResponseEntity<String>( result, statusCode );
 	}
 	
 	protected String getOriginalUrl(HttpServletRequest request) {
@@ -106,5 +87,33 @@ public abstract class BaseGlobalExceptionHandler {
 		String body = accumulator.toString();
 
 		return body;
+	}
+
+	protected String getHeaders(HttpServletRequest request) {
+		Enumeration<?> i = request.getHeaderNames();
+
+		StringBuilder headers = new StringBuilder();
+		while ( i.hasMoreElements() ) {
+			String header = (String) i.nextElement();
+			
+			if ( header.equalsIgnoreCase( "authorization" ) ) {
+				continue;
+			}
+			
+			String headerValues = "";
+			Enumeration<?> enumeration = request.getHeaders( header );
+			while ( enumeration.hasMoreElements() ) {
+				headerValues += (String) enumeration.nextElement() + ";";
+			}
+			
+			headers.append( header ).append( ": " ).append( headerValues ).append( ", " );
+		}
+
+		String headersStr = headers.toString();
+		if ( headersStr.length() > 0 ) {
+			headersStr = headersStr.substring( 0, headersStr.length() - 2 );
+		}
+
+		return headersStr;
 	}
 }
