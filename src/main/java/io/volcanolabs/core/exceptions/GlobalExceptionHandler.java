@@ -3,14 +3,19 @@ package io.volcanolabs.core.exceptions;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Set;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,10 +28,25 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  *
  */
 @ControllerAdvice
-public class BaseGlobalExceptionHandler {
-	Logger log = LoggerFactory.getLogger( BaseGlobalExceptionHandler.class );
+public class GlobalExceptionHandler {
+	protected static final Logger log = LoggerFactory.getLogger( GlobalExceptionHandler.class );
+	protected static final Set<String> headersToHide = new HashSet<>();
 
 	private static final int CHUNK_SIZE = 8192;
+	
+	@Value( "${http.headers.to_hide}" )
+	private String[] headersToHideConfig;
+	
+	public GlobalExceptionHandler() {
+		log.info( "GlobalExceptionHandler created." );
+	}
+	
+	@PostConstruct
+	public void init() {
+		log.info( "Loading headersToHide." );
+		
+		headersToHide.addAll( Arrays.asList( headersToHideConfig ) );
+	}
 
 	@ExceptionHandler( value = Exception.class )
 	public ResponseEntity<String> defaultErrorHandler(HttpServletRequest request, Exception e) throws Exception {
@@ -36,12 +56,13 @@ public class BaseGlobalExceptionHandler {
 			throw e;
 		}
 
+		HttpStatus statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
 		ResponseEntity<String> result;
 		if ( e instanceof SimpleStatusResponseException ) {
-			result = generateExceptionResponse( request, ( (SimpleStatusResponseException) e ).getStatusCode(), e );
-		} else {
-			result = generateExceptionResponse( request, HttpStatus.INTERNAL_SERVER_ERROR, e );
+			statusCode = ( (SimpleStatusResponseException) e ).getStatusCode();
 		}
+
+		result = generateExceptionResponse( request, statusCode, e );
 
 		return result;
 	}
@@ -52,7 +73,7 @@ public class BaseGlobalExceptionHandler {
 		String body = getBodyOfRequest( request );
 
 		String result = "{\n\t\"statusCode\": \"" + statusCode + "\",\n\t\"message\": \"" + e.getMessage() + "\",\n\t\"url\": \"" + originalUrl + "\",\n\t\"headers\": [\"" + headers + "\"],\n\t\"body\": \"" + body + "\"";
-		if ( e != null ) {
+		if ( e instanceof SimpleStatusResponseException == false ) {
 			String stackTrace = ExceptionUtils.getStackTrace( e );
 			stackTrace = StringEscapeUtils.ESCAPE_JSON.translate( stackTrace );
 			result += ",\n\t\"exception\": \"\n" + stackTrace;
@@ -96,22 +117,22 @@ public class BaseGlobalExceptionHandler {
 		while ( i.hasMoreElements() ) {
 			String header = (String) i.nextElement();
 			
-			if ( header.equalsIgnoreCase( "authorization" ) ) {
-				continue;
-			}
-			
 			String headerValues = "";
 			Enumeration<?> enumeration = request.getHeaders( header );
 			while ( enumeration.hasMoreElements() ) {
-				headerValues += (String) enumeration.nextElement() + ";";
+				String headerValue = (String) enumeration.nextElement();
+				if ( headersToHide.contains( header.toLowerCase() ) ) {
+					headerValue = headerValue.replaceAll( ".", "X" );
+				}
+				headerValues += headerValue + ";";
 			}
 			
-			headers.append( header ).append( ": " ).append( headerValues ).append( ", " );
+			headers.append( header ).append( ": " ).append( headerValues ).append( " " );
 		}
 
 		String headersStr = headers.toString();
 		if ( headersStr.length() > 0 ) {
-			headersStr = headersStr.substring( 0, headersStr.length() - 2 );
+			headersStr = headersStr.substring( 0, headersStr.length() - 1 );
 		}
 
 		return headersStr;
