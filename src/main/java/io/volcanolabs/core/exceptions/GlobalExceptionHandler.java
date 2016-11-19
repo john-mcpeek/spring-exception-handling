@@ -22,6 +22,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.servlet.NoHandlerFoundException;
+
+import com.fasterxml.jackson.databind.JsonMappingException;
 
 /**
  * @author John McPeek
@@ -43,7 +46,7 @@ public class GlobalExceptionHandler {
 	
 	@PostConstruct
 	public void init() {
-		log.info( "Loading headersToHide." );
+		log.info( "Loading headersToHide: {}", Arrays.toString( headersToHideConfig ) );
 		
 		headersToHide.addAll( Arrays.asList( headersToHideConfig ) );
 	}
@@ -56,6 +59,13 @@ public class GlobalExceptionHandler {
 			throw e;
 		}
 
+		if ( e instanceof NoHandlerFoundException ) {
+			e = new SimpleStatusResponseException( e.getMessage(), HttpStatus.BAD_REQUEST );
+		}
+		else if ( e.getCause() instanceof JsonMappingException) {
+			e = new SimpleStatusResponseException( e.getCause().getMessage(), HttpStatus.BAD_REQUEST );
+		}
+		
 		HttpStatus statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
 		ResponseEntity<String> result;
 		if ( e instanceof SimpleStatusResponseException ) {
@@ -72,7 +82,7 @@ public class GlobalExceptionHandler {
 		String headers = getHeaders( request );
 		String body = getBodyOfRequest( request );
 
-		String result = "{\n\t\"statusCode\": \"" + statusCode + "\",\n\t\"message\": \"" + e.getMessage() + "\",\n\t\"url\": \"" + originalUrl + "\",\n\t\"headers\": [\"" + headers + "\"],\n\t\"body\": \"" + body + "\"";
+		String result = "{\n\t\"statusCode\": \"" + statusCode + "\",\n\t\"message\": \"" + e.getMessage() + "\",\n\t\"method\": \"" + request.getMethod() + "\",\n\t\"url\": \"" + originalUrl + "\",\n\t\"headers\": [\"" + headers + "\"],\n\t\"body\": \"" + body + "\"";
 		if ( e instanceof SimpleStatusResponseException == false ) {
 			String stackTrace = ExceptionUtils.getStackTrace( e );
 			stackTrace = StringEscapeUtils.ESCAPE_JSON.translate( stackTrace );
