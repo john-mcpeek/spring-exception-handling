@@ -46,8 +46,7 @@ public class GlobalExceptionHandler {
 	
 	@PostConstruct
 	public void init() {
-		log.info( "Loading headersToHide: {}", Arrays.toString( headersToHideConfig ) );
-		
+		log.info( "Loading headersToHide: {}", Arrays.toString( headersToHideConfig ) );		
 		headersToHide.addAll( Arrays.asList( headersToHideConfig ) );
 	}
 
@@ -82,7 +81,13 @@ public class GlobalExceptionHandler {
 		String headers = getHeaders( request );
 		String body = getBodyOfRequest( request );
 
-		String result = "{\n\t\"statusCode\": \"" + statusCode + "\",\n\t\"message\": \"" + e.getMessage() + "\",\n\t\"method\": \"" + request.getMethod() + "\",\n\t\"url\": \"" + originalUrl + "\",\n\t\"headers\": [\"" + headers + "\"],\n\t\"body\": \"" + body + "\"";
+		String result = "{\n\t\""
+				+ "statusCode\": \"" + statusCode + "\",\n\t\""
+				+ "message\": \"" + e.getMessage() + "\",\n\t\""
+				+ "method\": \"" + request.getMethod() + "\",\n\t\""
+				+ "url\": \"" + originalUrl + "\",\n\t\""
+				+ "headers\": [\"" + headers + "\"],\n\t\""
+				+ "body\": \"" + body + "\"";
 		if ( e instanceof SimpleStatusResponseException == false ) {
 			String stackTrace = ExceptionUtils.getStackTrace( e );
 			stackTrace = StringEscapeUtils.ESCAPE_JSON.translate( stackTrace );
