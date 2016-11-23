@@ -34,8 +34,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 public class GlobalExceptionHandler {
 	protected static final Logger log = LoggerFactory.getLogger( GlobalExceptionHandler.class );
 	protected static final Set<String> headersToHide = new HashSet<>();
-
-	private static final int CHUNK_SIZE = 8192;
+	protected static final int CHUNK_SIZE = 8192;
 	
 	@Value( "${http.headers.to_hide}" )
 	private String[] headersToHideConfig;
