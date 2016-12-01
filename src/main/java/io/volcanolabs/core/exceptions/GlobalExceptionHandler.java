@@ -45,7 +45,7 @@ public class GlobalExceptionHandler {
 	
 	@PostConstruct
 	public void init() {
-		log.info( "Loading headersToHide: {}", Arrays.toString( headersToHideConfig ) );		
+		log.info( "Loading headersToHide: {}", Arrays.toString( headersToHideConfig ) );
 		headersToHide.addAll( Arrays.asList( headersToHideConfig ) );
 	}
 
@@ -65,13 +65,12 @@ public class GlobalExceptionHandler {
 		}
 		
 		HttpStatus statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-		ResponseEntity<String> result;
 		if ( e instanceof SimpleStatusResponseException ) {
 			statusCode = ( (SimpleStatusResponseException) e ).getStatusCode();
 		}
 
-		result = generateExceptionResponse( request, statusCode, e );
-
+		ResponseEntity<String> result = generateExceptionResponse( request, statusCode, e );
+		
 		return result;
 	}
 
