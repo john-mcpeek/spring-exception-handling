@@ -89,7 +89,7 @@ public class GlobalExceptionHandler {
 		if ( e instanceof SimpleStatusResponseException == false ) {
 			String stackTrace = ExceptionUtils.getStackTrace( e );
 			stackTrace = StringEscapeUtils.ESCAPE_JSON.translate( stackTrace );
-			result += ",\n\t\"exception\": \"\n" + stackTrace;
+			result += ",\n\t\"exception\": \"\n" + stackTrace + "\"";
 		}
 		result += "\n}";
 		
