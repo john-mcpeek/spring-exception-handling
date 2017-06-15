@@ -17,6 +17,10 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
 /**
  * This Filter enables us to re-read the input stream. We need to do this so we can
  * send the user the original request body in the event of an exception being thrown.
@@ -24,14 +28,24 @@ import javax.servlet.http.HttpServletRequestWrapper;
  * @author John McPeek
  *
  */
+@Component
 public class ReReadableRequestInputStreamFilter implements Filter {
+	protected static final Logger log = LoggerFactory.getLogger( ReReadableRequestInputStreamFilter.class );
+	
+	public ReReadableRequestInputStreamFilter() {
+		log.info( "ReReadableRequestInputStreamFilter created" );
+	}
 
 	public void init(FilterConfig filterConfig) throws ServletException {
 	}
 
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-		HttpServletRequestWrapper wrappedRequest = new ReReadableHttpServletRequest( (HttpServletRequest) request );
+		if ( request instanceof HttpServletRequestWrapper ) {
+			log.debug( "Request is already wrapped. $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" );
+		}
 		
+		HttpServletRequestWrapper wrappedRequest = new ReReadableHttpServletRequest( (HttpServletRequest) request );
+
 		chain.doFilter( wrappedRequest, response );
 	}
 	

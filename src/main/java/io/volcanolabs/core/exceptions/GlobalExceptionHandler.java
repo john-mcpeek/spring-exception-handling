@@ -36,7 +36,7 @@ public class GlobalExceptionHandler {
 	protected static final Set<String> headersToHide = new HashSet<>();
 	protected static final int CHUNK_SIZE = 8192;
 	
-	@Value( "${http.headers.to_hide}" )
+	@Value( "${http.headers.to_hide:}" )
 	private String[] headersToHideConfig;
 	
 	public GlobalExceptionHandler() {
