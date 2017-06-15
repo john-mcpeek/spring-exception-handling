@@ -41,7 +41,7 @@ public class ReReadableRequestInputStreamFilter implements Filter {
 
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 		if ( request instanceof HttpServletRequestWrapper ) {
-			log.debug( "Request is already wrapped. $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" );
+			log.debug( "Request is already wrapped." );
 		}
 		
 		HttpServletRequestWrapper wrappedRequest = new ReReadableHttpServletRequest( (HttpServletRequest) request );
