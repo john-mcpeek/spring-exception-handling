@@ -1,4 +1,4 @@
-package io.volcanolabs.core.exceptions;
+package com.fmc.coast2coastrx.exceptions;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -54,10 +55,14 @@ public class GlobalExceptionHandler {
 		// If the exception is annotated with @ResponseStatus re-throw it and let the framework
 		// handle it. AnnotationUtils is a Spring Framework utility class.
 		if ( AnnotationUtils.findAnnotation( e.getClass(), ResponseStatus.class ) != null ) {
+			log.info( "@ResponseStatus, message: {}", e.getMessage() );
 			throw e;
 		}
 
-		if ( e instanceof NoHandlerFoundException ) {
+		if ( e instanceof AccessDeniedException ) {
+			e = new SimpleStatusResponseException( "Access Denied", HttpStatus.FORBIDDEN );
+		}
+		else if ( e instanceof NoHandlerFoundException ) {
 			e = new SimpleStatusResponseException( e.getMessage(), HttpStatus.BAD_REQUEST );
 		}
 		else if ( e.getCause() instanceof JsonMappingException) {
